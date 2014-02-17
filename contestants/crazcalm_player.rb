@@ -1,6 +1,6 @@
 class Crazcalm_player
 
-	attr_accessor :ships_xy
+	attr_accessor :ships_xy, :hit_count, :ships_left, :shots_taken, :target1, :target2, :hits_landed
 
 	def name
 		Crazcalm
@@ -14,9 +14,13 @@ class Crazcalm_player
 
 		#[x, y, length, orientation]
 		#orientation:  :across or :down
-
-		@ships_xy = [] # hold all taken positions
-		my_ships  = [] 
+		
+		@target2     = []
+		@target1		 = []
+		@shots_taken = []
+		@hit_count   = 0
+		@ships_xy    = [] # hold all taken positions
+		my_ships     = [] 
 
 		my_ships = [5,4,3,3,2].collect {|ship| place_ships(ship)}
 		
@@ -24,25 +28,28 @@ class Crazcalm_player
 	end
 
 	def take_turn(state, ships_remaining)
+		
+		hit_tracker(state)
 
-		#state is a representation of the known state of the 
-		#opponent’s fleet, as modified by the player’s shots. 
-		#It is given as an array of arrays; the inner arrays 
-		#represent horizontal rows. Each cell may be in one of 
-		#three states: :unknown, :hit, or :miss. E.g.
+		@ships_left ||= ships_remaining.size
 
-		#[[:hit, :miss, :unknown, ...], [:unknown, :unknown, :unknown, ...], ...]
-			# 0,0   1,0    2,0              0,1       1,1       2,1
+		if @ships_left != ships_remaining.size
+			hit_count = 0
+			target1 = []
+			target2 = []
+			@ships_left = ships_remaining.size
+		end
 
+		case @hit_count
+			when 0 then attack = general_attack
+			when 1 then attack =  attack_1
+			else 
+				attack = attack_2
+		end
 
-		#ships_remaining is an array of the ships remaining on the opponent's board,
-		# given as an array of numbers representing their lengths, longest first. 
-		#For example, the first two calls will always be:
+		shots_taken << attack
+		return attack
 
-		#[5, 4, 3, 3, 2]
-
-
-		#take_turn must return an array of co-ordinates for the next shot.
 	end
 
 
@@ -96,6 +103,73 @@ class Crazcalm_player
 		tempt_xy.each {|pos| ships_xy << pos}
 		
 		true
+	end
+
+	def hit_tracker(state)
+
+		state.each_with_index |row, x|
+			row.each_with_index |status, y|
+				
+				if status == :hit and !@hits_landed.include?([x,y])
+						@hit_count += 1
+						hits_landed << [x,y]
+				end
+			end
+		end
+	end
+
+	def general_attack
+		[rand(10), rand(10)]
+	end
+
+	def attack_1
+		x,y = @hits_landed.last
+		
+		up, down, left, right = nil, nil. nil, nil
+
+		right  = [x+1, y] if valid_attack(x+1, y)
+		left   = [x-1, y] if valid_attack(x-1, y)
+		up     = [x, y+1] if valid_attack(x, y+1)
+		down   = [x, y-1] if valid_attack(x, y-1)
+
+		options = []
+		options << right << left << up << down
+		
+		valid_shots = []
+		options.each do |x|
+		
+			if !x.nil? and !@shots_taken.include?(x)
+				valid_shots << x
+			end
+		end
+		attack = valid_shots[rand(valid_shots.size)]
+		
+		attack
+	end
+
+	def attack_2
+
+		x1, y1 = @hits_landed[-1]
+		x2, y2 = @hits_landed[-2]
+		
+		if x1 == x2
+			y_range = ()
+
+
+	end
+
+	def valid_attack(x,y)
+		if (1...10).to_a.include?(x) and (1...10).to_a.include?(y)
+			answer = true
+		else 
+			answer = false
+		end
+
+	answer
+	end
+		
+				
+
 	end
 
 end
